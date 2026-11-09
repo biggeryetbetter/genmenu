@@ -1,0 +1,24 @@
+[project]
+name = "genmenu"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "Reese Farinas", email = "rfarinas@itthinks.com" }
+]
+requires-python = ">=3.14"
+dependencies = [
+    "huggingface-hub>=2.4.0",
+    "jinja2>=3.1.6",
+    "pillow>=13.0.0",
+    "playwright>=1.64.1",
+    "torch>=2.15.0",
+    "transformers>=5.22.2",
+]
+
+[project.scripts]
+genmenu = "genmenu:main"
+
+[build-system]
+requires = ["uv_build>=0.13.1,<0.14.0"]
+build-backend = "uv_build"

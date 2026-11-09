@@ -1,0 +1,3 @@
+I've prepared some code in `__init__.py` that renders an HTML template with Jinja and some synthetic data, then renders two versions, one highlighted fully with CSS styling, the other partially with PIL drawing. For the PIL version, the bounding boxes of elements are extracted.
+
+I have downloaded the `TrainingYOLOS.ipynb` notebook. I would like the `__init__.py` to generate training data that's compatible with the notebook. Adapt the code in `__init__.py` to do this.

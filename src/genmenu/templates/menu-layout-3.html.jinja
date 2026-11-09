@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>{{ title }} — Menu</title>
+<style>
+  body { font-family: 'Comic Sans MS', 'Trebuchet MS', sans-serif; background:#2b2b2b; color:#f4f1e8; margin:0; padding:40px 20px; }
+  .board { max-width:700px; margin:0 auto; border:6px solid #6b4a2f; border-radius:8px; padding:30px; background:#333; }
+  h1 { text-align:center; font-size:2.4em; margin:0; }
+  .subtitle { text-align:center; margin-bottom:25px; }
+  .item { display:flex; justify-content:space-between; font-size:1.1em; padding:6px 0; }
+  .item .dots { flex:1; border-bottom:2px dotted #777; margin:0 8px 6px; }
+  .item .price { font-weight:bold; }
+  .sizes { margin:0 0 15px 20px; font-size:0.9em; }
+  .sizes > div { display:flex; justify-content:space-between; }
+{% if segmented %}
+  h1 > span { background-color:#a9441c; color: transparent; }
+  .subtitle > span { background-color:#888; color: transparent; }
+  .item .item-name { background-color:#a9441c; color: transparent; }
+  .item .price { background-color:#2e7d32; color: transparent; }
+  .sizes { background-color:#555; color: transparent; }
+  .sizes .variant-name { background-color: hsl(30, 80%, 50%); box-shadow: inset 0 0 0 1px #555; }
+  .sizes .variant-price { background-color:#2e7d32; box-shadow: inset 0 0 0 1px #555; }
+{% else %}
+  h1 { color:#ffd166; text-shadow:1px 1px 2px #000; }
+  .subtitle { color:#ccc; }
+  .item .price { color:#ffd166; }
+  .sizes { color:#ddd; }
+{% endif %}
+</style>
+</head>
+<body>
+  <div class="board">
+    <h1><span>{{ title }}</span></h1>
+    <p class="subtitle"><span>{{ subtitle }}</span></p>
+
+    {% for item in items %}
+      {% if item.price is defined %}
+    <div class="item"><span class="item-name">{{ item.name }}</span><span class="dots"></span><span class="price">${{ '%.2f'|format(item.price) }}</span></div>
+      {% elif item.variants is defined %}
+    <div class="item"><span class="item-name">{{ item.name }}</span><span class="dots"></span><span></span></div>
+    <div class="sizes">
+      {% for variant in item.variants %}
+      <div><span class="variant-name">{{ variant.name }}</span><span class="variant-price">${{ '%.2f'|format(variant.price) }}</span></div>
+      {% endfor %}
+    </div>
+      {% endif %}
+    {% endfor %}
+  </div>
+</body>
+</html>
