@@ -1,0 +1,48 @@
+{% extends "base.html.jinja" %}
+{% from "_macros.html.jinja" import badges, info_footer %}
+{# Two-column newspaper style with sections #}
+{% block style %}
+  body { padding: 36px 24px; }
+  .page { max-width: 1000px; margin: 0 auto; }
+  header { text-align: center; border-top: 4px double var(--primary); border-bottom: 4px double var(--primary); padding: 14px 0 10px; margin-bottom: 28px; }
+  h1 { margin: 0; font-size: 2.6em; color: var(--primary); text-transform: uppercase; letter-spacing: 2px; }
+  .subtitle { margin: 6px 0 0; color: var(--muted); font-style: italic; }
+  .cols { column-count: 2; column-gap: 40px; column-rule: 1px solid var(--border); }
+  @media (max-width: 700px) { .cols { column-count: 1; } }
+  section { break-inside: avoid; margin-bottom: 26px; }
+  h2 { font-size: 1.15em; text-transform: uppercase; letter-spacing: 3px; color: var(--secondary); margin: 0 0 12px; padding-bottom: 4px; border-bottom: 2px solid var(--accent); }
+  .item { margin-bottom: 12px; break-inside: avoid; }
+  .line { display: flex; align-items: baseline; gap: 10px; }
+  .name { font-weight: 700; }
+  .fill { flex: 1; }
+  .price { color: var(--accent); font-weight: 700; white-space: nowrap; }
+  .desc { display: block; width: fit-content; color: var(--muted); font-size: 0.88em; margin-top: 2px; }
+  .variants { margin-top: 4px; font-size: 0.88em; }
+  .variant { display: inline-block; white-space: nowrap; margin-right: 14px; }
+  .variant .vp { color: var(--accent); margin-left: 5px; }
+{% endblock %}
+{% block body %}
+<div class="page">
+  <header>
+    <h1><span class="ann-title">{{ title }}</span></h1>
+    <p class="subtitle"><span class="ann-subtitle">{{ subtitle }}</span></p>
+  </header>
+  <div class="cols">
+    {% for section in sections %}
+    <section>
+      <h2><span class="ann-section-title">{{ section.name }}</span></h2>
+      {% for item in section.dishes %}
+      <div class="item ann-item">
+        <div class="line"><span class="name ann-item-title">{{ item.name }}</span>{{ badges(item) }}<span class="fill"></span>{% if item.price is defined %}<span class="price ann-item-price">{{ price(item.price) }}</span>{% endif %}</div>
+        {% if item.desc %}<span class="desc ann-item-desc">{{ item.desc }}</span>{% endif %}
+        {% if item.variants is defined %}
+        <div class="variants">{% for v in item.variants|select %}<span class="variant ann-variant"><span class="ann-variant-title">{{ v.name }}</span><span class="vp ann-variant-price">{{ price(v.price) }}</span></span>{% endfor %}</div>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </section>
+    {% endfor %}
+  </div>
+  {% if show_footer %}{{ info_footer(footer) }}{% endif %}
+</div>
+{% endblock %}

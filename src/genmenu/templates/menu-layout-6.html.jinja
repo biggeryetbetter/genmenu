@@ -1,0 +1,52 @@
+{% extends "base.html.jinja" %}
+{% from "_macros.html.jinja" import badges, info_footer %}
+{# Photo cards: picture on every card, starburst stickers, variant chips #}
+{% block style %}
+  body { padding: 30px 20px; }
+  .page { max-width: 1100px; margin: 0 auto; }
+  header { text-align: center; margin-bottom: 10px; }
+  h1 { margin: 0; font-size: 2.6em; color: var(--primary); }
+  .subtitle { margin: 4px 0 0; color: var(--muted); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 18px; }
+  h2.section { grid-column: 1 / -1; margin: 22px 0 0; font-size: 1.5em; color: var(--secondary); border-left: 6px solid var(--accent); padding-left: 10px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; position: relative; display: flex; flex-direction: column; }
+  .card .pic { height: 150px; width: 100%; display: block; object-fit: cover; }
+  .card .badge-art { position: absolute; top: 8px; right: 8px; width: 56px; height: 56px; }
+  .card .body { padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 6px; flex: 1; align-items: flex-start; }
+  .name { font-family: var(--font-heading); font-size: 1.15em; font-weight: 700; color: var(--primary); }
+  .desc { font-size: 0.85em; color: var(--muted); }
+  .price { margin-top: auto; font-size: 1.2em; font-weight: 700; color: var(--accent); }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: auto; }
+  .chip { border: 1px solid var(--accent); border-radius: 999px; padding: 2px 10px; font-size: 0.8em; white-space: nowrap; }
+  .chip .vp { font-weight: 700; color: var(--accent); margin-left: 6px; }
+{% endblock %}
+{% block body %}
+<div class="page">
+  <header>
+    <h1><span class="ann-title">{{ title }}</span></h1>
+    <p class="subtitle"><span class="ann-subtitle">{{ subtitle }}</span></p>
+  </header>
+  <div class="grid">
+    {% for section in sections %}
+    <h2 class="section"><span class="ann-section-title">{{ section.name }}</span></h2>
+    {% for item in section.dishes %}
+    <div class="card ann-item">
+      {{ art.spot("pic", photo_bias=0.8) }}
+      {% set short = item.badges|select("short")|list %}
+      {% if short %}{{ art.badge(short[0]) }}{% endif %}
+      <div class="body">
+        <div><span class="name ann-item-title">{{ item.name }}</span>{{ badges({"badges": item.badges|reject("in", short[:1])|list}) }}</div>
+        {% if item.desc %}<span class="desc ann-item-desc">{{ item.desc }}</span>{% endif %}
+        {% if item.variants is defined %}
+        <div class="chips">{% for v in item.variants|select %}<span class="chip ann-variant"><span class="ann-variant-title">{{ v.name }}</span><span class="vp ann-variant-price">{{ price(v.price) }}</span></span>{% endfor %}</div>
+        {% else %}
+        <span class="price ann-item-price">{{ price(item.price) }}</span>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+    {% endfor %}
+  </div>
+  {% if show_footer %}{{ info_footer(footer) }}{% endif %}
+</div>
+{% endblock %}

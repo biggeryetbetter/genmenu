@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>{{ title }} — Menu</title>
+<style>
+{{ theme_css }}
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--font-body); font-size: var(--base-size); }
+  h1, h2, h3, .heading { font-family: var(--font-heading); font-weight: 700; }
+  .badge { display: inline-block; font-size: 0.65em; font-weight: 700; padding: 1px 6px; margin-left: 6px; border-radius: 999px;
+           background: var(--accent); color: var(--on-primary); vertical-align: middle; font-family: var(--font-body);
+           white-space: nowrap; flex: none; }
+  footer.info { text-align: center; color: var(--muted); font-size: 0.8em; margin-top: 30px; line-height: 1.6; }
+{% block style %}{% endblock %}
+{% if segmented %}
+{{ segmented_css }}
+{% endif %}
+</style>
+</head>
+<body>
+{% block body %}{% endblock %}
+</body>
+</html>

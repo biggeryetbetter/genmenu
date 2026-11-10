@@ -1,82 +1,104 @@
-from jinja2 import Environment, PackageLoader, select_autoescape
-from random import randrange, choice
-from playwright.sync_api import sync_playwright, Browser
-from PIL.Image import Image, new, open as img_open
-from PIL.ImageDraw import ImageDraw
+"""genmenu: generate a synthetic menu object-detection dataset (Hugging Face imagefolder format)."""
+import argparse
+import json
+import random
+from pathlib import Path
+from typing import Any
 
-env = Environment(
-    loader=PackageLoader("genmenu"),
-    autoescape=select_autoescape()
-)
+from playwright.sync_api import Page, sync_playwright
+from PIL import Image
 
-item_types = ["sandwich", "burger", "wrap", "taco", "tapa", "pepper", "fish dish", "hot dish", "soup", "stew", "phō"]
-adjectives = ["beef", "soupy", "pork", "chicken", "turkey", "mutton", "lamb", "fishy", "hot", "drip", "gagging", "dirt", "crass"]
-verbs = ["cooked", "brothed", "beequeethed", "eaten", "made", "smashed", "worn", "grilled", "fried", "boiled", "shot", "shat"]
-adverbs = ["beefily", "soupily", "porkly", "chickenly", "turkely", "muttonly", "lambly", "fishily", "hotly", "drippingly", "gaggingly", "dirtily", "crassly"]
+from .annotations import ID2LABEL, draw_annotations, extract_annotations
+from .clipart import ImageLibrary
+from .templating import LAYOUTS_BY_NAME, install_asset_routes, random_sample, render
 
-def random_single_item(no_variants: bool):
-    what_is_it = choice(item_types)
-    type = randrange(0, 4)
-    name = ""
-    if type == 0:
-        name = f"{choice(adverbs)} {choice(verbs)} {choice(adjectives)} {what_is_it}"
-    if type == 1:
-        name = f"{choice(verbs)} {choice(adjectives)} {choice(item_types)} {what_is_it}"
-    if type == 2:
-        name =  f"{choice(adjectives)} {choice(item_types)} {what_is_it}"
-    else:
-        name = f"{choice(verbs)} {choice(item_types)} {what_is_it}"
-    
-    desc = f"{choice(adverbs)} {choice(verbs)} {what_is_it}. It's {choice(adjectives)}, {choice(adjectives)}, {choice(adjectives)}, and most importantly, {choice(adjectives)}."
-    has_variants = randrange(0, 1) == 0
-    if has_variants and not no_variants:
-        variants = [random_single_item(True) for i in range(4)]
-        return {
-            "name": name,
-            "desc": desc,
-            "variants": variants,
-        }
-    else:
-        return {
-            "name": name,
-            "desc": desc,
-            "price": randrange(0, 100),
-        }
 
-menu = {
-    "title": "Borg Cáfe",
-    "subtitle": "Eat your shorts.",
-    "items": [ random_single_item(False) for i in range(10)]
-}
-
-def render_page(html: str, path: str, b: Browser):
-    page = b.new_page()
-    page.set_content(html)
-    # pyrefly: ignore[unsupported-operation]
-    overlay = new("RGBA", (page.viewport_size["width"], page.viewport_size["height"]), (255, 255, 255, 0))
-    draw = ImageDraw(overlay)
-    for i in page.locator("css=.desc").all():
-        bbox = i.bounding_box()
-        print(f"\"{i.text_content()}\" -> {bbox}")
-        # pyrefly: ignore[unsupported-operation]
-        draw.rectangle((bbox["x"], bbox["y"], bbox["x"]+bbox["width"], bbox["y"]+bbox["height"]), fill=(255, 0, 64, 128))
-    page.screenshot(path=path)
-    rendered_image = img_open(path).convert("RGBA")
-    rendered_image.alpha_composite(overlay)
-    rendered_image.save(path)
+def load(page: Page, html: str) -> None:
+    page.set_content(html, wait_until="load")
+    page.evaluate("document.fonts.ready.then(() => true)")
 
 
 def main() -> None:
-    with sync_playwright() as w:
-        b = w.chromium.launch()
-        for i in range(1, 4):
-            template = env.get_template(f"menu-layout-{i}.html.jinja")
-            out = template.render(menu)
-            render_page(out, f"out/out{i}.png", b)
-            out_seg = template.render(menu, segmented = True)
-            render_page(out_seg, f"out/out{i}-seg.png", b)
-            with open(f"out/out{i}.html", 'w') as out_html:
-                out_html.write(out)
-            with open(f"out/out{i}-seg.html", 'w') as out_html:
-                out_html.write(out_seg)
-        
+    parser = argparse.ArgumentParser(description="Generate a synthetic menu object-detection dataset (HF imagefolder format).")
+    parser.add_argument("--count", type=int, default=500, help="number of images to generate")
+    parser.add_argument("--val-fraction", type=float, default=0.2, help="fraction of images in the validation split")
+    parser.add_argument("--out", type=Path, default=Path("out/dataset"), help="output directory")
+    parser.add_argument("--seed", type=int, default=None, help="random seed")
+    parser.add_argument("--min-width", type=int, default=480, help="minimum viewport width")
+    parser.add_argument("--max-width", type=int, default=1400, help="maximum viewport width")
+    parser.add_argument("--layout", choices=sorted(LAYOUTS_BY_NAME), default=None, help="only use this layout")
+    parser.add_argument("--images", type=Path, default=Path("assets/images"),
+                        help="folder of extra pictures for image layouts (used if it exists)")
+    parser.add_argument("--debug", action="store_true",
+                        help="also write HTML, CSS-segmented renders and PIL box overlays to <out>/debug")
+    args = parser.parse_args()
+
+    if args.seed is not None:
+        random.seed(args.seed)
+
+    library = ImageLibrary(args.images)
+    if library.files:
+        print(f"Using {len(library.files)} images from {args.images}")
+
+    out: Path = args.out
+    n_val = round(args.count * args.val_fraction)
+    splits = {"train": args.count - n_val, "validation": n_val}
+    for split in splits:
+        (out / split).mkdir(parents=True, exist_ok=True)
+    debug_dir = out / "debug"
+    if args.debug:
+        debug_dir.mkdir(parents=True, exist_ok=True)
+
+    (out / "labels.json").write_text(json.dumps({"id2label": ID2LABEL}, indent=2))
+
+    image_id = 0
+    annotation_id = 0
+    with sync_playwright() as pw:
+        browser = pw.chromium.launch()
+        page = browser.new_page()
+        install_asset_routes(page, library)
+        for split, n in splits.items():
+            with open(out / split / "metadata.jsonl", "w") as meta:
+                for _ in range(n):
+                    sample = random_sample(args.min_width, args.max_width, args.layout)
+                    page.set_viewport_size({"width": sample.width, "height": 800})
+
+                    html = render(sample, library)
+                    load(page, html)
+                    file_name = f"{image_id:05d}.png"
+                    image_path = out / split / file_name
+                    page.screenshot(path=str(image_path), full_page=True)
+                    with Image.open(image_path) as img:
+                        width, height = img.size
+                    anns = extract_annotations(page, width, height)
+
+                    objects: dict[str, list[Any]] = {"id": [], "bbox": [], "categories": [], "area": []}
+                    for ann in anns:
+                        objects["id"].append(annotation_id)
+                        objects["bbox"].append(ann["bbox"])
+                        objects["categories"].append(ann["category_id"])
+                        objects["area"].append(round(ann["bbox"][2] * ann["bbox"][3], 2))
+                        annotation_id += 1
+                    meta.write(json.dumps({
+                        "file_name": file_name,
+                        "image_id": image_id,
+                        "width": width,
+                        "height": height,
+                        "objects": objects,
+                        **sample.describe(),
+                    }, ensure_ascii=False) + "\n")
+
+                    if args.debug:
+                        stem = f"{image_id:05d}-{sample.layout.name}"
+                        (debug_dir / f"{stem}.html").write_text(html)
+                        draw_annotations(image_path, anns, debug_dir / f"{stem}-boxes.png")
+                        html_seg = render(sample, library, segmented=True)
+                        (debug_dir / f"{stem}-seg.html").write_text(html_seg)
+                        load(page, html_seg)
+                        page.screenshot(path=str(debug_dir / f"{stem}-seg.png"), full_page=True)
+
+                    image_id += 1
+                    if image_id % 50 == 0:
+                        print(f"{image_id}/{args.count} images")
+        browser.close()
+    print(f"Wrote {image_id} images ({splits['train']} train / {splits['validation']} validation) to {out}")

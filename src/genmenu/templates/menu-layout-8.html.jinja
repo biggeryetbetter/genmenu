@@ -1,0 +1,54 @@
+{% extends "base.html.jinja" %}
+{% from "_macros.html.jinja" import badges, info_footer %}
+{# Poster: banner picture with a title plate, sections in auto columns with clipart and dividers #}
+{% block style %}
+  .hero { position: relative; height: 260px; overflow: hidden; }
+  .hero .banner-art { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+  .hero .plate { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); background: var(--surface); border: 3px solid var(--accent);
+                 padding: 16px 34px; text-align: center; width: max-content; max-width: 90%; }
+  h1 { margin: 0; font-size: 2.8em; color: var(--primary); }
+  .subtitle { margin: 6px 0 0; color: var(--muted); }
+  .content { max-width: 1200px; margin: 0 auto; padding: 30px 24px; display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 28px 36px; align-items: start; }
+  .shead { display: flex; align-items: center; gap: 10px; }
+  .shead .art { width: 44px; height: 44px; flex: none; }
+  h2 { margin: 0; font-size: 1.5em; color: var(--secondary); }
+  .divider { display: block; width: 100%; max-width: 260px; height: 26px; margin: 2px 0 10px; }
+  .item { margin-bottom: 12px; }
+  .line { display: flex; align-items: baseline; }
+  .name { text-transform: uppercase; font-weight: 700; letter-spacing: 1px; font-size: 0.95em; }
+  .dots { flex: 1; min-width: 20px; border-bottom: 2px dotted var(--border); margin: 0 6px; }
+  .price { color: var(--accent); font-weight: 700; white-space: nowrap; }
+  .desc { display: block; width: fit-content; font-size: 0.85em; color: var(--muted); margin-top: 2px; }
+  .variants { font-size: 0.88em; margin-top: 3px; }
+  .variant { display: inline-block; white-space: nowrap; }
+  .variant .vp { color: var(--accent); margin-left: 4px; }
+  .sep { color: var(--muted); margin: 0 6px; }
+  .content footer.info { grid-column: 1 / -1; }
+{% endblock %}
+{% block body %}
+  <div class="hero">
+    {{ art.banner() }}
+    <div class="plate">
+      <h1><span class="ann-title">{{ title }}</span></h1>
+      <p class="subtitle"><span class="ann-subtitle">{{ subtitle }}</span></p>
+    </div>
+  </div>
+  <div class="content">
+    {% for section in sections %}
+    <section>
+      <div class="shead">{{ art.icon() }}<h2><span class="ann-section-title">{{ section.name }}</span></h2></div>
+      {{ art.divider() }}
+      {% for item in section.dishes %}
+      <div class="item ann-item">
+        <div class="line"><span class="name ann-item-title">{{ item.name }}</span>{{ badges(item) }}<span class="dots"></span>{% if item.price is defined %}<span class="price ann-item-price">{{ price(item.price) }}</span>{% endif %}</div>
+        {% if item.desc %}<span class="desc ann-item-desc">{{ item.desc }}</span>{% endif %}
+        {% if item.variants is defined %}
+        <div class="variants">{% for v in item.variants|select %}{% if not loop.first %}<span class="sep">/</span>{% endif %}<span class="variant ann-variant"><span class="ann-variant-title">{{ v.name }}</span><span class="vp ann-variant-price">{{ price(v.price) }}</span></span>{% endfor %}</div>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </section>
+    {% endfor %}
+    {% if show_footer %}{{ info_footer(footer) }}{% endif %}
+  </div>
+{% endblock %}

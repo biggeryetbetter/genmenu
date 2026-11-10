@@ -11,3 +11,6 @@ wheels/
 
 # Outputs
 out/
+.ipynb_checkpoints/
+.virtual_documents/
+lightning_logs/

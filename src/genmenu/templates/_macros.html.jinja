@@ -1,0 +1,2 @@
+{% macro badges(item) %}{% for b in item.badges %}<span class="badge">{{ b }}</span>{% endfor %}{% endmacro %}
+{% macro info_footer(f) %}<footer class="info">{{ f.address }}<br>{{ f.hours }} · {{ f.phone }}</footer>{% endmacro %}

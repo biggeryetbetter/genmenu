@@ -1,0 +1,50 @@
+{% extends "base.html.jinja" %}
+{% from "_macros.html.jinja" import badges, info_footer %}
+{# Size grid: every section is a table with one price column per size #}
+{% block style %}
+  body { padding: 30px 16px; }
+  .page { max-width: 860px; margin: 0 auto; }
+  header { background: var(--primary); color: var(--on-primary); text-align: center; padding: 22px 16px; border-radius: 6px; margin-bottom: 26px; }
+  h1 { margin: 0; font-size: 2.4em; }
+  .subtitle { margin: 6px 0 0; opacity: 0.9; }
+  table { width: 100%; border-collapse: collapse; margin-bottom: 28px; }
+  thead tr { border-bottom: 2px solid var(--primary); }
+  th { padding: 8px 6px; }
+  th.section { text-align: left; font-size: 1.35em; color: var(--primary); font-family: var(--font-heading); }
+  th.size { text-align: right; font-size: 0.85em; text-transform: uppercase; color: var(--secondary); white-space: nowrap; }
+  tbody tr:nth-child(even) { background: var(--surface); }
+  tbody tr { border-bottom: 1px solid var(--border); }
+  td { padding: 8px 6px; vertical-align: top; }
+  td.p { text-align: right; white-space: nowrap; color: var(--accent); font-weight: 600; }
+  td.p.none { color: var(--muted); }
+  .desc { display: block; width: fit-content; font-size: 0.82em; color: var(--muted); margin-top: 2px; }
+{% endblock %}
+{% block body %}
+<div class="page">
+  <header>
+    <h1><span class="ann-title">{{ title }}</span></h1>
+    <p class="subtitle"><span class="ann-subtitle">{{ subtitle }}</span></p>
+  </header>
+  {% for section in sections %}
+  <table>
+    <thead>
+      <tr>
+        <th class="section"><span class="ann-section-title">{{ section.name }}</span></th>
+        {% for size in section.sizes %}<th class="size"><span class="ann-variant-title">{{ size }}</span></th>{% endfor %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in section.dishes %}
+      <tr class="ann-item">
+        <td><span class="ann-item-title">{{ item.name }}</span>{{ badges(item) }}{% if item.desc %}<span class="desc ann-item-desc">{{ item.desc }}</span>{% endif %}</td>
+        {% for v in item.variants %}
+        {% if v %}<td class="p"><span class="ann-variant-price">{{ price(v.price) }}</span></td>{% else %}<td class="p none">—</td>{% endif %}
+        {% endfor %}
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endfor %}
+  {% if show_footer %}{{ info_footer(footer) }}{% endif %}
+</div>
+{% endblock %}
