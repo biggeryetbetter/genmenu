@@ -1,4 +1,6 @@
 """Random menu content: titles, sections, items, variants, badges and footer details."""
+import jsonschema
+import json
 import random
 from random import choice, randrange
 from typing import Any
@@ -88,7 +90,7 @@ def random_item(sizes: list[str] | None = None) -> dict[str, Any]:
     if sizes is not None:
         base = random_price(3, 30)
         item["variants"] = [
-            {"name": size, "price": round(base + i * choice([1, 2, 2.5, 3, 4]), 2)}
+            {"name": size, "_kind": 0, "price": round(base + i * choice([1, 2, 2.5, 3, 4]), 2)}
             if i == 0 or random.random() < 0.9 else None
             for i, size in enumerate(sizes)
         ]
@@ -103,7 +105,7 @@ def random_item(sizes: list[str] | None = None) -> dict[str, Any]:
         else:
             names = [random_dish_name() for _ in range(n)]
         base = random_price()
-        item["variants"] = [{"name": v, "price": round(base + i * choice([0.5, 1, 2, 3]), 2)} for i, v in enumerate(names)]
+        item["variants"] = [{"name": v, "_kind": kind, "price": round(base + i * choice([0.5, 1, 2, 3]), 2)} for i, v in enumerate(names)]
     else:
         item["price"] = random_price()
     return item
@@ -149,3 +151,48 @@ def random_menu(grid: bool = False, sections: bool = False) -> dict[str, Any]:
         "footer": random_footer(),
         "show_footer": random.random() < 0.5,
     }
+
+with open("schema.json", 'r') as s:
+    schema = json.load(s)
+
+def menu_to_structured(menu: dict[str, Any]) -> dict[str, Any]:
+    sections = [
+        { 
+            "name": i["name"],
+            "items": [
+                {
+                    "name": d["name"],
+                    "desc": d["desc"],
+                    "price": d["price"],
+                } for d in i["dishes"] if not "variants" in d.keys()
+            ],
+            "varying_items": [ 
+                {
+                    "name": d["name"],
+                    "desc": d["desc"],
+                    "variants": [{
+                        "name": var["name"],
+                        "type": ["size", None, "subdish"][var["_kind"]],
+                        "price": var["price"]
+                    } for var in d["variants"] if var != None if var["_kind"] != 1 ],
+                    "addons": [{
+                        "name": add["name"],
+                        "type": ["size", "addon", "subdish"][add["_kind"]],
+                        "price": add["price"]
+                    } for add in d["variants"] if add != None if add["_kind"] == 1 ]
+                } for d in i["dishes"] if "variants" in d.keys()
+            ],
+        } for i in menu["sections"]
+    ]
+    out = {
+        "title": menu["title"],
+        "subtitle": menu["subtitle"],
+        "sections": sections,
+    }
+
+    try:
+        jsonschema.validate(out, schema)
+    except jsonschema.ValidationError as e:
+        print("WARNING: menu was not valid!\n", e)
+
+    return out

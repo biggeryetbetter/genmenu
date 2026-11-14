@@ -13,7 +13,7 @@ from playwright.sync_api import Page, Route
 
 from .annotations import segmented_css
 from .clipart import Art, ImageLibrary
-from .menu_data import random_menu
+from .menu_data import random_menu, menu_to_structured
 from .theme import ASSET_HOST, FONT_DIR, Theme, random_theme
 
 env = Environment(
@@ -23,6 +23,7 @@ env = Environment(
     lstrip_blocks=True,
 )
 # badges short enough to fit on a starburst sticker
+# pyrefly: ignore[bad-argument-type, unsupported-operation]
 env.tests["short"] = lambda s: len(s) <= 5
 
 
@@ -79,7 +80,7 @@ class Sample:
     width: int
 
     def describe(self) -> dict[str, Any]:
-        return {"layout": self.layout.name, "price_format": self.price_format, **self.theme.describe()}
+        return {"layout": self.layout.name, "price_format": self.price_format, "structured": menu_to_structured(self.menu), **self.theme.describe()}
 
 
 def random_sample(min_width: int, max_width: int, layout: str | None = None) -> Sample:

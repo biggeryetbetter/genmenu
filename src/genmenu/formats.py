@@ -105,5 +105,34 @@ class YoloWriter:
             f"names:\n{names}\n"
         )
 
+class MMLLMWriter:
+    """Writer that creates a dataset of example pairs consisting of image inputs and JSON structured outputs. Used for fine-tuning LLMS like Gemma4 or Qwen."""
+    SPLIT_DIRS = {"train": "train", "validation": "val"}
 
-WRITERS: dict[str, type[HFWriter] | type[YoloWriter]] = {"hf": HFWriter, "yolo": YoloWriter}
+    def __init__(self, out: Path) -> None:
+        self.out = out
+        # Create train/val dirs if they don't exist
+        for d in self.SPLIT_DIRS.values():
+            (out / d).mkdir(parents=True, exist_ok=True)
+        self.meta_train = open(out / self.SPLIT_DIRS["train"] / "metadata.jsonl", 'w')
+        self.meta_val = open(out / self.SPLIT_DIRS["validation"] / "metadata.jsonl", 'w')
+
+    def image_path(self, split: str, file_name: str) -> Path:
+        return self.out / self.SPLIT_DIRS[split] / file_name
+
+    def write(self, split: str, file_name: str, image_id: int, width: int, height: int,
+              anns: list[dict[str, Any]], extra: dict[str, Any]) -> None:
+        data = json.dumps(extra)
+        if split == "train":
+            self.meta_train.write(f"{data}\n")
+        elif split == "validation":
+            self.meta_train.write(f"{data}\n")
+        else:
+            print(f"WARNING: invalid split: '{split}'")
+
+    def close(self) -> None:
+        self.meta_train.close()
+        self.meta_val.close()
+
+
+WRITERS: dict[str, type[HFWriter] | type[YoloWriter] | type[MMLLMWriter]] = { "hf": HFWriter, "yolo": YoloWriter, "llm": MMLLMWriter }
